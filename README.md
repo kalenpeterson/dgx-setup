@@ -5,7 +5,7 @@ DGX Node Initial Setup
 ## 1) Clone Deeopops
 https://github.com/NVIDIA/deepops/blob/master/docs/dgx-pod.md
 ```
-git clone --recurse-submodules --branch 20.08.1 https://github.com/NVIDIA/deepops.git
+git clone --recurse-submodules --branch 20.10 https://github.com/NVIDIA/deepops.git
 cd deepops
 git submodule update
 ```
