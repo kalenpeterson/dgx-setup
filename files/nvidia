@@ -1,0 +1,4 @@
+Package: *
+#Pin: origin international.download.nvidia.com
+Pin: release o=DGX Server
+Pin-Priority: 600

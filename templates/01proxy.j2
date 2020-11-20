@@ -1,0 +1,3 @@
+# Set Apt Proxy to Mgmt Node
+Acquire::HTTP::Proxy "http://{{ apt_cache_ip }}:3142";
+Acquire::HTTPS::Proxy "http://{{ apt_cache_ip }}:3142";

@@ -1,0 +1,3 @@
+# DGX specific repositories:
+deb http://international.download.nvidia.com/dgx/repos/bionic bionic main restricted universe multiverse
+deb http://international.download.nvidia.com/dgx/repos/bionic bionic-updates main restricted universe multiverse

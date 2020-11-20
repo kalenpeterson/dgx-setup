@@ -1,0 +1,2 @@
+# DGX OS 4.1 and later
+deb http://international.download.nvidia.com/dgx/repos/bionic bionic-r418+cuda10.1 main multiverse restricted universe
