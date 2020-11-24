@@ -1,0 +1,31 @@
+---
+- name: Setup kubectl on MGMT nodes
+  hosts: mgmt
+  gather_facts: yes
+
+  tasks:
+  - name: Copy kubectl binary from deepops artifacts
+    copy:
+      src: "{{ deepops_path }}/config/artifacts/kubectl"
+      dest: /usr/local/bin/kubectl
+      owner: root
+      group: root
+      mode: '0755'
+    become: yes
+    when: "'provision' in group_names"
+
+  - name: Copy kubectl binary to other Mgmt Nodes
+    copy:
+      src: /usr/local/bin/kubectl
+      dest: /usr/local/bin/kubectl
+      owner: root
+      group: root
+      mode: '0755'
+    become: yes
+    when: "'provision' not in group_names"
+
+  - name: Copy .kube config to other nodes
+    copy:
+      src: "/home/{{ ansible_user }}/.kube"
+      dest: "/home/{{ ansible_user }}"
+    when: "'provision' not in group_names"
