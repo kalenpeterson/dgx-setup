@@ -1,0 +1,39 @@
+---
+
+- name: Prep DGX Nodes
+  hosts: node
+  gather_facts: yes
+  tasks:
+
+  # - name: Configure Nvidia DGX 450 Cuda Repos
+  #   copy:
+  #     src: files/dgx-bionic-r450-cuda11-0-repo.list
+  #     dest: /etc/apt/sources.list.d/dgx-bionic-r450-cuda11-1-repo.list
+  #     owner: root
+  #     group: root
+  #     mode: '0644'
+  #   become: yes
+
+  - name: Install 450 Repo
+    apt:
+      name: dgx-bionic-r450+cuda11.0-repo
+      state: latest
+      update_cache: yes
+    become: yes
+
+  - name: Upgrade
+    apt:
+      upgrade: full
+      update_cache: yes
+    become: yes
+
+  - name: Check if Reboot is required
+    stat:
+      path: /var/run/reboot-required
+    register: reboot_required
+
+  - name: Reboot if required
+    reboot:
+      msg: Reboot is required, rebooting now
+    when: reboot_required.stat.exists
+    become: yes
