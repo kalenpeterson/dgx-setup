@@ -1,0 +1,62 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: replicator-config
+  namespace: deepops
+data:
+  ngc-update.sh: |
+    #!/bin/bash
+    ngc_replicator                                        \
+      --project=nvidia                                    \
+      --min-version=$(date +"%y.%m" -d "1 month ago")     \
+      --py-version=py3                                    \
+      --registry-url=registry.local
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: ngc-replicator
+  namespace: deepops
+  labels:
+    app: ngc-replicator
+spec:
+  schedule: "0 4 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: nvidia-mgmt01
+          containers:
+            - name: replicator
+              image: deepops/replicator
+              imagePullPolicy: Always
+              command: [ "/bin/sh", "-c", "/ngc-update/ngc-update.sh" ]
+              env:
+              - name: NGC_REPLICATOR_API_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: ngc-secret
+                    key: apikey
+              volumeMounts:
+              - name: registry-config
+                mountPath: /ngc-update
+              - name: docker-socket
+                mountPath: /var/run/docker.sock
+              - name: ngc-replicator-storage
+                mountPath: /output
+          volumes:
+            - name: registry-config
+              configMap:
+                name: replicator-config
+                defaultMode: 0777
+            - name: docker-socket
+              hostPath:
+                path: /var/run/docker.sock
+                type: File
+            - name: ngc-replicator-storage
+              hostPath:
+                path: /opt/replicator
+                type: Directory
+          restartPolicy: Never
