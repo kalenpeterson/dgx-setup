@@ -1,0 +1,13 @@
+---
+
+- name: Prep DGX Nodes
+  hosts: kube-node
+  gather_facts: yes
+  vars:
+    container_registry_hostname: registry.local
+  tasks:
+    - name: Set registry hostname in /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ container_registry_ip }} {{ container_registry_hostname }}"
+
