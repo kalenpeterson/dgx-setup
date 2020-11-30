@@ -19,3 +19,4 @@
     service:
       name: docker
       state: restarted
+    become: yes
