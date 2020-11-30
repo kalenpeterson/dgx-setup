@@ -4,7 +4,12 @@
   gather_facts: yes
 
   tasks:
-  - name: Copy kubectl binary from deepops artifacts
+  - name: Update /etc/hosts
+    lineinfile:
+      path: /etc/hosts
+      line: "1.1.1.1 registry.local"
+    
+  - name: Copy Docker daemon config
     copy:
       src: "files/daemon.json"
       dest: /etc/docker/daemon.json
