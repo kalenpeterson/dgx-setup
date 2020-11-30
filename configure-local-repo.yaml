@@ -1,0 +1,21 @@
+---
+- name: Setup local docker registry
+  hosts: all
+  gather_facts: yes
+
+  tasks:
+  - name: Copy kubectl binary from deepops artifacts
+    copy:
+      src: "files/daemon.json"
+      dest: /etc/docker/daemon.json
+      owner: root
+      group: root
+      mode: '0644'
+    become: yes
+    notify: Restart docker
+
+  handlers:
+  - name: Restart docker
+    service:
+      name: docker
+      state: restarted
