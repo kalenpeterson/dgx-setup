@@ -1,0 +1,62 @@
+---
+- name: Configure firewalld on Mgmt Nodes
+  hosts: mgmt
+  gather_facts: yes
+  become: yes
+  vars:
+    external_ports:
+    - "80/tcp"
+    - "443/tcp"
+    - "22/tcp"
+    internal_networks:
+    - "10.227.209.0/24"
+    - "172.17.0.0/16"
+    - "10.233.0.0/16"
+  tasks:
+  - name: Enable firewalld
+    service:
+      name: firewalld
+      enabled: yes
+
+  - name: Open External Ports
+    firewalld:
+      permanent: yes
+      immediate: no
+      port: "{{ item }}"
+      state: enabled
+      zone: public
+    notify: Restart firewalld
+    loop: "{{ external_ports }}"
+
+  - name: Allow All inter-node communication
+    firewalld:
+      permanent: yes
+      immediate: no
+      rich_rule: "rule family=ipv4 source address={{ item }} accept"
+      state: enabled
+      zone: public
+    notify: Restart firewalld
+    loop: "{{ internal_networks }}"
+    
+  - name: Enable Masquerade
+    firewalld:
+      masquerade: yes
+      state: enabled
+      permanent: yes
+      zone: public
+    notify: Restart firewalld
+
+  handlers:
+  - name: Restart firewalld
+    service:
+      name: firewalld
+      state: restarted
+    notify: Restart Calico
+
+  - name: Restart Calico
+    shell: |
+      kubectl delete pods -n kube-system $(kubectl get pods -n kube-system -o wide -l k8s-app=calico-node |grep mgmt |awk '{print $1}')
+    become: no
+    delegate_to: localhost
+    run_once: True
+
