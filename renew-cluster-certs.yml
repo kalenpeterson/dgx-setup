@@ -1,100 +1,60 @@
 ---
 - name: Renew Kubernetes Cluster Certificates
-  hosts: provision
+  hosts: mgmt
+  serial: 1
   gather_facts: yes
-  vars:
-    expired: yes
 
   tasks:
-  - name: Renew certificates on Primary Master
+  - name: Renew certificates on Master
     command:
       cmd: /usr/local/bin/kubeadm alpha certs renew all
     become: yes
-    notify: Restart Kubelet
 
-  - name: Regenerate kubeconfig on Primary Master
-    command:
-      cmd: /usr/local/bin/kubeadm alpha kubeconfig user --org system:nodes --client-name system:node:$(hostname) > /etc/kubernetes/kubelet.conf
+  - name: Restart Docker
+    service:
+      name: docker
+      state: restarted
     become: yes
-    notify: Restart Kubelet
   
-  handlers:
   - name: Restart Kubelet
     service:
       name: kubelet
       state: restarted
     become: yes
 
-- name: Update Secondary Master Nodes
+  - name: Wait for node to be ready
+    shell: kubectl get node $(hostname) |grep $(hostname) |grep Ready
+    register: cmd_result
+    retries: 30
+    delay: 10
+    until: cmd_result.stdout_lines | list | count == 1
+    become: no
+    changed_when: false
+
+- name: Print Cluster and Cert status
   hosts: mgmt
-  gather_facts: yes
-  vars:
-    expired: yes
+  serial: 1
+  gather_facts: no
 
   tasks:
-  - name: Wait for 10 Seconds
-    pause:
-      minutes: 5
-
-  - name: Copy updated Certs to Masters
-    copy:
-      src: "/etc/kubernetes/pki/{{ item }}"
-      dest: "/etc/kubernetes/pki/{{ item }}"
-      owner: root
-      group: root
-      mode: preserve
-      backup: yes
-    become: yes
-    when: "'provision' not in group_names"
-    notify: Restart Kubelet
-    loop:
-    - apiserver.crt
-    - apiserver-kubelet-client.crt
-    - front-proxy-ca.crt
-    - front-proxy-client.crt
-    - front-proxy-client.key
-    - front-proxy-ca.key
-    - apiserver-kubelet-client.key
-    - apiserver.key
-    - apiserver-etcd-client.crt
-
-  - name: Copy updated Config to Masters
-    copy:
-      src: "/etc/kubernetes/{{ item }}"
-      dest: "/etc/kubernetes/{{ item }}"
-      owner: root
-      group: root
-      mode: preserve
-      backup: yes
-    become: yes
-    when: "'provision' not in group_names"
-    notify: Restart Kubelet
-    loop:
-    - admin.conf
-    - controller-manager.conf
-    - kubelet.conf
-    - scheduler.conf
-
-  - name: Regenerate kubeconfig on Secondary Masters
+  - name: Check Cert Expriation
     command:
-      cmd: /usr/local/bin/kubeadm alpha kubeconfig user --org system:nodes --client-name system:node:$(hostname) > /etc/kubernetes/kubelet.conf
+      cmd: /usr/local/bin/kubeadm alpha certs check-expiration
     become: yes
-    when: "'provision' not in group_names"
-    notify: Restart Kubelet
+    changed_when: false
+    register: cert_out
 
-  - name: Copy kubeconfig to DGX User
-    copy:
-      src: /etc/kubernetes/admin.conf
-      dest: "/home/{{ ansible_user }}/.kube/config"
-      owner: "{{ ansible_user }}"
-      group: "{{ ansible_user }}"
-      mode: '0640'
-      backup: yes
-    become: yes
+  - name: Print Cert Status
+    debug:
+      msg: "{{ cert_out.stdout_lines }}"
 
-  handlers:
-  - name: Restart Kubelet
-    service:
-      name: kubelet
-      state: restarted
-    become: yes
+  - name: Check if Node is ready
+    shell: kubectl get node $(hostname) |grep $(hostname) |grep Ready
+    register: cmd_result
+    become: no
+    changed_when: false
+
+  - name: Print Cert Status
+    debug:
+      msg: "{{ cmd_result.stdout_lines }}"
+  
