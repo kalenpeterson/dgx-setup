@@ -3,12 +3,27 @@
   hosts: mgmt
   serial: 1
   gather_facts: yes
-
+  vars:
+    certs_already_expired: false
+    
   tasks:
   - name: Renew certificates on Master
     command:
       cmd: /usr/local/bin/kubeadm alpha certs renew all
     become: yes
+
+  - name: Rebuild Kubelet Config
+    shell: /usr/local/bin/kubeadm alpha kubeconfig user --org system:nodes --client-name system:node:$(hostname) > /etc/kubernetes/kubelet.conf
+    become: yes
+    when: certs_already_expired
+
+  - name: Update DGX Kubeconfig
+    shell: |
+      mv /home/dgx/.kube/config /home/dgx/.kube/config.backup.$(date +"%Y-%m-%d")
+      cp /etc/kubernetes/admin.conf /home/dgx/.kube/config
+      chown dgx:dgx /home/dgx/.kube/config
+    become: yes
+    when: certs_already_expired
 
   - name: Restart Docker
     service:
