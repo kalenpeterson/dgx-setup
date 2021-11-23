@@ -1,0 +1,100 @@
+---
+- name: Renew Kubernetes Cluster Certificates
+  hosts: provision
+  gather_facts: yes
+  vars:
+    expired: yes
+
+  tasks:
+  - name: Renew certificates on Primary Master
+    command:
+      cmd: /usr/local/bin/kubeadm alpha certs renew all
+    become: yes
+    notify: Restart Kubelet
+
+  - name: Regenerate kubeconfig on Primary Master
+    command:
+      cmd: /usr/local/bin/kubeadm alpha kubeconfig user --org system:nodes --client-name system:node:$(hostname) > /etc/kubernetes/kubelet.conf
+    become: yes
+    notify: Restart Kubelet
+  
+  handlers:
+  - name: Restart Kubelet
+    service:
+      name: kubelet
+      state: restarted
+    become: yes
+
+- name: Update Secondary Master Nodes
+  hosts: mgmt
+  gather_facts: yes
+  vars:
+    expired: yes
+
+  tasks:
+  - name: Wait for 10 Seconds
+    pause:
+      minutes: 5
+
+  - name: Copy updated Certs to Masters
+    copy:
+      src: "/etc/kubernetes/pki/{{ item }}"
+      dest: "/etc/kubernetes/pki/{{ item }}"
+      owner: root
+      group: root
+      mode: preserve
+      backup: yes
+    become: yes
+    when: "'provision' not in group_names"
+    notify: Restart Kubelet
+    loop:
+    - apiserver.crt
+    - apiserver-kubelet-client.crt
+    - front-proxy-ca.crt
+    - front-proxy-client.crt
+    - front-proxy-client.key
+    - front-proxy-ca.key
+    - apiserver-kubelet-client.key
+    - apiserver.key
+    - apiserver-etcd-client.crt
+
+  - name: Copy updated Config to Masters
+    copy:
+      src: "/etc/kubernetes/{{ item }}"
+      dest: "/etc/kubernetes/{{ item }}"
+      owner: root
+      group: root
+      mode: preserve
+      backup: yes
+    become: yes
+    when: "'provision' not in group_names"
+    notify: Restart Kubelet
+    loop:
+    - admin.conf
+    - controller-manager.conf
+    - kubelet.conf
+    - scheduler.conf
+
+  - name: Regenerate kubeconfig on Secondary Masters
+    command:
+      cmd: /usr/local/bin/kubeadm alpha kubeconfig user --org system:nodes --client-name system:node:$(hostname) > /etc/kubernetes/kubelet.conf
+    become: yes
+    when: "'provision' not in group_names"
+    notify: Restart Kubelet
+
+  - name: Copy kubeconfig to DGX User
+    copy:
+      src: /etc/kubernetes/admin.conf
+      dest: "/home/{{ ansible_user }}/.kube/config"
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: '0640'
+      backup: yes
+    become: yes
+
+  handlers:
+  - name: Restart Kubelet
+    service:
+      name: kubelet
+      state: restarted
+    become: yes
