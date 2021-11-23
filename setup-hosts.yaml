@@ -1,0 +1,12 @@
+---
+- name: Setup kubectl on MGMT nodes
+  hosts: all
+  gather_facts: no
+
+  tasks:
+  - name: Copy Hosts file
+    template:
+      src: templates/hosts.j2
+      dest: /etc/hosts
+    become: yes
+
