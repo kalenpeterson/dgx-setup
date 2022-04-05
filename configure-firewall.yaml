@@ -9,13 +9,9 @@
     - "443/tcp"
     - "22/tcp"
     internal_networks:
-<<<<<<< HEAD
     - "10.227.209.0/24"
     - "172.17.0.0/16"
     - "10.233.0.0/16"
-=======
-    - "172.17.0.0/16"
->>>>>>> 6ca21b8d10763512d473f5a83c046cebe7b0f202
   tasks:
   - name: Enable firewalld
     service:
@@ -41,11 +37,7 @@
       zone: public
     notify: Restart firewalld
     loop: "{{ internal_networks }}"
-<<<<<<< HEAD
     
-=======
-
->>>>>>> 6ca21b8d10763512d473f5a83c046cebe7b0f202
   - name: Enable Masquerade
     firewalld:
       masquerade: yes
@@ -67,7 +59,3 @@
     become: no
     delegate_to: localhost
     run_once: True
-<<<<<<< HEAD
-
-=======
->>>>>>> 6ca21b8d10763512d473f5a83c046cebe7b0f202

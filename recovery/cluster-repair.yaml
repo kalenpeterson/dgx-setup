@@ -1,0 +1,98 @@
+---
+- name: Setup Provisioning host
+  hosts: provision
+  gather_facts: yes
+
+  tasks:
+  - name : Update pip on Provisioning Node
+    pip:
+      name: pip
+      state: latest
+    become: yes
+
+  - name: Remove pip urllib3 library
+    pip:
+      name: urllib3
+      state: absent
+    become: yes
+    notify: Backup urllib3 file
+
+  - name: Install CentOS Prereqs
+    yum:
+      name:
+        - libselinux-python
+        - python-urllib3
+    become: yes
+    when: ansible_distribution == 'CentOS'
+      
+  - name: Generate SSH Key
+    command:
+      cmd: ssh-keygen -b 2048 -t rsa -f "/home/{{ ansible_user }}/.ssh/id_rsa" -q -N ""
+      creates: "/home/{{ ansible_user }}/.ssh/id_rsa"
+  
+  handlers:
+  - name: Backup urllib3 file
+    command:
+      cmd: mv /usr/lib/python2.7/site-packages/urllib3/packages/ssl_match_hostname /tmp/ssl_match_hostname.bakup
+    become: yes
+    ignore_errors: yes
+
+- name: Setup apt-cacher-ng container
+  hosts: provision
+  gather_facts: yes
+  tags:
+    - apt-cacher-ng
+
+  tasks:
+  - name: Add Docker-ce Repo
+    yum_repository:
+      name: docker-ce
+      baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+      description: docker-ce YUM REPO
+      gpgkey: https://download.docker.com/linux/centos/gpg
+      gpgcheck: yes
+    become: yes
+    when: ansible_distribution == 'CentOS'
+
+  - name: Install CentOS Docker
+    yum:
+      name:
+        - docker-ce
+        - docker-ce-cli
+        - docker-ce-selinux
+    become: yes
+    when: ansible_distribution == 'CentOS'
+
+  - name: Start Docker
+    service:
+      name: docker
+      state: started
+      enabled: yes
+    become: yes
+
+  - name: Install pip docker
+    pip:
+      name: docker
+    become: yes
+
+- name: Prep All nodes
+  hosts: all
+  gather_facts: yes
+  vars_prompt:
+    - name: ansible_password
+      prompt: Please enter the Ansible User SSH Password
+      private: yes
+
+  tasks:
+  - name: Install CentOS Prereqs
+    yum:
+      name:
+        - libselinux-python
+    become: yes
+    when: ansible_distribution == 'CentOS'
+
+  - name: Copy SSH Keys to all hosts
+    authorized_key:
+      user: "{{ ansible_user }}"
+      key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+      state: present
