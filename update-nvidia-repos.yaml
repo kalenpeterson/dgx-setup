@@ -1,0 +1,72 @@
+- name: Prep DGX Nodes
+  hosts: node
+  gather_facts: no
+  vars:
+    apt_upgrade: False
+    apt_reboot: False
+  tags:
+    - update-nvidia-repos
+
+  tasks:
+  - name: Download the Nvidia GPG Packages
+    get_url:
+      url: https://repo.download.nvidia.com/baseos/ubuntu/focal/dgx-repo-files.tgz
+      dest: /tmp/dgx-repo-files.tgz
+      checksum: sha256:456304e243939cff61efeb0cee893bf2bbe97f19f7feaab5508856576d6771f0
+    delegate_to: localhost
+    run_once: True
+    retries: 3
+    delay: 5
+
+  - name: Copy Nvidia GPG Package to DGX nodes
+    copy:
+      src: /tmp/dgx-repo-files.tgz
+      dest: /tmp/dgx-repo-files.tgz
+    retries: 3
+    delay: 5
+
+  - name: Extract Repo Files
+    unarchive:
+      src: /tmp/dgx-repo-files.tgz
+      dest: /
+    become: yes
+
+  - name: Revoke old GPG Keys
+    apt_key:
+      id: "{{ item }}"
+      state: absent
+    become: yes
+    loop:
+      - AE09FE4BBD223A84B2CCFCE3F60F4B3D7FA2AF80
+      - 7835264B12C3DA965D0E1078ECDB3674629C85F2
+    ignore_errors: yes
+
+  - name: Delete old Repos
+    file:
+      path: "{{ item }}"
+      state: absent
+    become: yes
+    loop:
+      - /etc/apt/sources.list.d/developer_download_nvidia_com_compute_cuda_repos_ubuntu1804_x86_64.list
+      - /etc/apt/sources.list.d/dgx-bionic-r418-cuda10-1-repo.list
+
+  - name: Run upgrade
+    apt:
+      upgrade: full
+      update_cache: yes
+    become: yes
+    when: apt_upgrade |bool
+
+  - name: Check if Reboot is required
+    stat:
+      path: /var/run/reboot-required
+    register: reboot_required
+    when: apt_reboot |bool
+
+  - name: Reboot if required
+    reboot:
+      msg: Reboot is required, rebooting now
+    when:
+      - apt_reboot |bool
+      - reboot_required.stat.exists
+    become: yes
