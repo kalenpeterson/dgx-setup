@@ -5,8 +5,31 @@
   gather_facts: yes
   vars:
     certs_already_expired: false
-    
+    export_kubeconfig_path: /data/home/dgx/kubeconfig
+    backup_certs_config: true
+    backup_path: /tmp/k8s-cluster-backups
+
   tasks:
+
+  - name: Get ansible_date_time
+    set_fact:
+      backup_date: "{{ ansible_date_time.iso8601_basic_short }}"
+
+  - name: Backup Old Certs and Configs
+    block:
+      - name: Copy Old Certs
+        shell: |
+          mkdir -p {{ backup_path }}/{{ backup_date }}/pki
+          /bin/cp -p /etc/kubernetes/pki/*.* {{ backup_path }}/{{ backup_date }}/pki
+        become: yes
+      
+      - name: Copy Old Config
+        shell: |
+          mkdir -p {{ backup_path }}/{{ backup_date }}
+          /bin/cp -p /etc/kubernetes/*.conf {{ backup_path }}/{{ backup_date }}
+        become: yes
+    when: backup_certs_config
+    
   - name: Renew certificates on Master
     command:
       cmd: /usr/local/bin/kubeadm alpha certs renew all
@@ -19,9 +42,9 @@
 
   - name: Update DGX Kubeconfig
     shell: |
-      mv /home/dgx/.kube/config /home/dgx/.kube/config.backup.$(date +"%Y-%m-%d")
-      cp /etc/kubernetes/admin.conf /home/dgx/.kube/config
-      chown dgx:dgx /home/dgx/.kube/config
+      mv {{ ansible_user_dir }}/.kube/config {{ ansible_user_dir }}/.kube/config.backup.$(date +"%Y-%m-%d")
+      cp /etc/kubernetes/admin.conf {{ ansible_user_dir }}/.kube/config
+      chown {{ ansible_user_id }}:{{ ansible_user_id }} {{ ansible_user_dir }}/.kube/config
     become: yes
     when: certs_already_expired
 
@@ -45,6 +68,19 @@
     until: cmd_result.stdout_lines | list | count == 1
     become: no
     changed_when: false
+
+  - name: Export DGX Kubeconfig to Shared location
+    copy:
+      src: "{{ ansible_user_dir }}/.kube/config"
+      dest: "{{ export_kubeconfig_path }}"
+    run_once: true
+    delegate_to: localhost
+    when: certs_already_expired
+
+  - name: Wait between nodes
+    pause:
+      seconds: 60
+    when: inventory_hostname != ansible_play_hosts_all[-1]
 
 - name: Print Cluster and Cert status
   hosts: mgmt
@@ -72,4 +108,5 @@
   - name: Print Cert Status
     debug:
       msg: "{{ cmd_result.stdout_lines }}"
+
   
