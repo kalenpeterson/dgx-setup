@@ -44,7 +44,7 @@
     shell: |
       mv {{ ansible_user_dir }}/.kube/config {{ ansible_user_dir }}/.kube/config.backup.$(date +"%Y-%m-%d")
       cp /etc/kubernetes/admin.conf {{ ansible_user_dir }}/.kube/config
-      chown {{ ansible_user_id }}:{{ ansible_user_id }} {{ ansible_user_dir }}/.kube/config
+      chown {{ ansible_user_uid }}:{{ ansible_user_gid }} {{ ansible_user_dir }}/.kube/config
     become: yes
     when: certs_already_expired
 
