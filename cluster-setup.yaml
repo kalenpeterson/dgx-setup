@@ -316,10 +316,18 @@
         become: yes
         register: lambda_deb
 
+      - name: Check CUDA EULA
+        shell: |
+          debconf-show cudnn |grep -c ACCEPT
+        changed_when: false
+        register: cuda_eula
+        become: yes
+
       - name: Accept CUDA EULA
         shell: |
           echo "cudnn cudnn/license_preseed select ACCEPT" |debconf-set-selections
         become: yes
+        when: cuda_eula.stdout != '1'
 
       - name: Install Lambda Stack
         apt:
