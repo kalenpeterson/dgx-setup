@@ -96,6 +96,13 @@
       state: present
     when: "'provision' not in group_names"
 
+  - name: Copy hosts file from mgmt01
+    copy:
+      src: /etc/hosts
+      dest: /etc/hosts
+    become: yes
+    when: "'provision' not in group_names"
+
   # - name: Ensure Selinux default context is applied
   #   command:
   #     cmd: /usr/sbin/restorecon -Rv /etc
@@ -214,6 +221,20 @@
     restart_docker: true
 
   tasks:
+  - name: Copy hosts file from mgmt01
+    copy:
+      src: /etc/hosts
+      dest: /etc/hosts
+    become: yes
+    when: "'provision' not in group_names"
+    
+  # Update hostname
+
+  # Unconfigure systemd timesync
+
+  # Configure and update time chrony
+  # Configure to eastern Time
+
   - name: Configure Apt Proxy
     template:
       src: templates/01proxy.j2
@@ -230,6 +251,8 @@
       - nvidia-container-toolkit
     update_cache: yes
     become: yes
+
+  # Install PAN FS Driver
 
   - name: Run upgrade
     apt:
