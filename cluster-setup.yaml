@@ -24,12 +24,12 @@
         - python-urllib3
     become: yes
     when: ansible_distribution == 'CentOS'
-      
+
   - name: Generate SSH Key
     command:
       cmd: ssh-keygen -b 2048 -t rsa -f "/home/{{ ansible_user }}/.ssh/id_rsa" -q -N ""
       creates: "/home/{{ ansible_user }}/.ssh/id_rsa"
-  
+
   handlers:
   - name: Backup urllib3 file
     command:
@@ -60,6 +60,22 @@
         - docker-ce-selinux
     become: yes
     when: ansible_distribution == 'CentOS'
+
+  - name: Create Apt Cache Volume
+    file:
+      path: "{{ apt_cache_path }}"
+      owner: root
+      group: root
+      mode: '0755'
+      state: directory
+    become: yes
+
+  - name: Update Volume Security context
+    sefcontext:
+      target: "{{ apt_cache_path }}(/.*)?"
+      setype: svirt_sandbox_file_t
+      state: present
+    become: yes
 
   - name: Start Docker
     service:
@@ -219,6 +235,8 @@
     update_certs: true
     deamon_reload: true
     restart_docker: true
+    allow_node_reboot: true
+    install_panfs_driver: false
 
   tasks:
   - name: Copy hosts file from mgmt01
@@ -227,14 +245,14 @@
       dest: /etc/hosts
     become: yes
     when: "'provision' not in group_names"
-    
-  # Update hostname
 
-  # Unconfigure systemd timesync
+  - name: Set hostname
+    hostname:
+      name: "{{ inventory_hostname }}"
+    become: yes
 
-  # Configure and update time chrony
-  # Configure to eastern Time
-
+  # NOTE: If you get 502 Errors with the apt-proxy
+  #  Delete all the content of the apt-cacher-ng volume
   - name: Configure Apt Proxy
     template:
       src: templates/01proxy.j2
@@ -244,15 +262,146 @@
       mode: '0644'
     become: yes
 
+  - name: Configure Time
+    block:
+      - name: Set Timezone
+        timezone:
+          name: "{{ cluster_timezone }}"
+        become: yes
+
+      - name: Unconfigure SystemD TimeSync/NTP
+        shell: |
+          timedatectl set-ntp false
+        become: yes
+
+      - name: Install Chronyd
+        apt:
+          pkg:
+          - chrony
+          update_cache: yes
+        become: yes
+        notify:
+          - Restart Chrony
+          - Force Timesync
+
+      - name: Configure chrony
+        template:
+          src: templates/chrony.conf.j2
+          dest: /etc/chrony/chrony.conf
+          owner: root
+          mode: '0644'
+        become: yes
+        notify:
+          - Restart Chrony
+          - Force Timesync  
+
+  - name: Install Lambda Stack and Reboot
+    block:
+      - name: Download Lambda DEB
+        get_url:
+          url: https://lambdalabs.com/static/misc/lambda-stack-repo.deb
+          dest: /tmp/lambda-stack-repo.deb
+        delegate_to: localhost
+        retries: 3
+        delay: 5
+
+      - name: Copy to Lambda Nodes
+        copy:
+          src: /tmp/lambda-stack-repo.deb
+          dest: /tmp/lambda-stack-repo.deb
+
+      - name: Install DEB
+        apt:
+          deb: /tmp/lambda-stack-repo.deb
+        become: yes
+        register: lambda_deb
+
+      - name: Accept CUDA EULA
+        shell: |
+          echo "cudnn cudnn/license_preseed select ACCEPT" |debconf-set-selections
+        become: yes
+
+      - name: Install Lambda Stack
+        apt:
+          pkg:
+          - lambda-stack-cuda
+          update_cache: yes
+          install_recommends: false
+        become: yes
+        register: lambda_stack
+        
+      - name: Reboot Node
+        reboot:
+          msg: Reboot requested by Ansible Nofity
+          reboot_timeout: 1800
+        when: (lambda_deb.changed or lambda_stack.changed)
+              and allow_node_reboot
+        become: yes
+
   - name: Install Docker and Nvidia Toolkit
     apt:
       pkg:
       - docker.io
       - nvidia-container-toolkit
-    update_cache: yes
+      update_cache: yes
+    become: yes
+    notify: Restart Docker
+
+  # Review /etc/systemd/system/docker files
+  - name: Create Docker System.d Directory
+    file:
+      path: /etc/systemd/system/docker.service.d
+      owner: root
+      group: root
+      mode: '0755'
+      state: directory
     become: yes
 
+  - name: Configure Docker Proxy
+    template:
+      src: templates/http-proxy.conf.j2
+      dest: /etc/systemd/system/docker.service.d/http-proxy.conf
+      owner: root
+      mode: '0644'
+    become: yes
+    notify: Restart Docker
+
+  - name: Install docker-registry-proxy CA cert
+    get_url:
+      url: "http://{{ docker_cache_host }}:{{ docker_cache_port }}/ca.crt"
+      dest: /usr/share/ca-certificates/docker_registry_proxy.crt
+      owner: root
+      group: root
+      mode: '0644'
+    become: yes
+    notify:
+      - Update CA Certs
+      - Reload Systemd
+      - Restart Docker
+
+  - name: Add the Cert to the root certs
+    lineinfile:
+      path: /etc/ca-certificates.conf
+      line: docker_registry_proxy.crt
+    become: yes
+    notify:
+      - Update CA Certs
+      - Reload Systemd
+      - Restart Docker
+
   # Install PAN FS Driver
+  - name: Install PanFS Driver
+    block:
+      - name: Copy PanFS DEB
+        copy:
+          src: "files/{{ panfs_driver }}"
+          dest: "/tmp/{{ panfs_driver }}"
+      
+      - name: Install PanFS Driver
+        apt:
+          deb: "/tmp/{{ panfs_driver }}"
+        become: yes
+    when: install_panfs_driver
 
   - name: Run upgrade
     apt:
@@ -270,6 +419,36 @@
       msg: Reboot is required, rebooting now
       reboot_timeout: 1800
     when: reboot_required.stat.exists
+          and allow_node_reboot
     become: yes
 
-  
+  handlers:
+  - name: Restart Chrony
+    service:
+      name: chrony
+      enabled: true
+      state: restarted
+    become: yes
+
+  - name: Force Timesync
+    shell: |
+      chronyc -a makestep
+    become: yes
+
+  - name: Update CA Certs
+    command:
+      cmd: /usr/sbin/update-ca-certificates --fresh
+    become: yes
+    when: update_certs is defined
+
+  - name: Reload Systemd
+    systemd: daemon_reload=yes
+    become: yes
+    when: deamon_reload is defined
+
+  - name: Restart Docker
+    service:
+      name: docker
+      enabled: true
+      state: restarted
+    become: yes
