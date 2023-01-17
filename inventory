@@ -6,6 +6,14 @@ nvidia-mgmt03 ip=10.227.209.173
 [node]
 nvidia-node01 ip=10.227.209.181
 nvidia-node02 ip=10.227.209.182
+lambda-node01 ip=10.227.209.192
+
+[dgx]
+nvidia-node01 ip=10.227.209.181
+nvidia-node02 ip=10.227.209.182
+
+[lambda]
+lambda-node02 ip=10.227.209.192
 
 [provision]
 nvidia-mgmt01 ip=10.227.209.171
