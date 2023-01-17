@@ -1,0 +1,28 @@
+---
+- name: Generate and Copy SSH Keys
+  hosts: provision
+  gather_facts: yes
+
+  tasks:
+  - name: Generate SSH Key
+    command:
+      cmd: ssh-keygen -b 2048 -t rsa -f "/home/{{ ansible_user }}/.ssh/id_rsa" -q -N ""
+      creates: "/home/{{ ansible_user }}/.ssh/id_rsa"
+  
+- name: Prep All nodes
+  hosts: all
+  gather_facts: yes
+  vars_prompt:
+    - name: ansible_password
+      prompt: Please enter the Ansible User SSH Password
+      private: yes
+
+  tasks:
+
+  - name: Copy SSH Keys to all hosts
+    authorized_key:
+      user: "{{ ansible_user }}"
+      key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+      state: present
+    when: "'provision' not in group_names"
+

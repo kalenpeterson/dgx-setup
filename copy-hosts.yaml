@@ -1,0 +1,13 @@
+---
+- name: Setup kubectl on MGMT nodes
+  hosts: all
+  gather_facts: no
+  
+  tasks:
+  - name: Copy hosts file from mgmt01
+    copy:
+      src: /etc/hosts
+      dest: /etc/hosts
+    become: yes
+    when: "'provision' not in group_names"
+
