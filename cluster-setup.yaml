@@ -294,7 +294,7 @@
           - Restart Chrony
           - Force Timesync  
 
-  - name: Install Lambda Stack and Reboot
+  - name: Install Lambda Repos
     block:
       - name: Download Lambda DEB
         get_url:
@@ -314,14 +314,10 @@
           deb: /tmp/lambda-stack-repo.deb
         become: yes
         register: lambda_deb
+    when: install_lambda_repos == true
 
-      # - name: Check CUDA EULA
-      #   shell: |
-      #     debconf-show cudnn |grep -c ACCEPT
-      #   changed_when: false
-      #   register: cuda_eula
-      #   become: yes
-
+  - name: Install Lambda Stack and Reboot
+    block:
       - name: Accept CUDA EULA
         shell: |
           echo "cudnn cudnn/license_preseed select ACCEPT" |debconf-set-selections
@@ -335,7 +331,7 @@
           install_recommends: false
         become: yes
         register: lambda_stack
-        
+    
       - name: Reboot Node
         reboot:
           msg: Reboot requested by Ansible Nofity
@@ -343,6 +339,7 @@
         when: (lambda_deb.changed or lambda_stack.changed)
               and allow_node_reboot
         become: yes
+    when: install_lambda_stack == true
 
   - name: Install Docker and Nvidia Toolkit
     apt:
