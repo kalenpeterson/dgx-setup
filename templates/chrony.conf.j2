@@ -2,7 +2,7 @@
 
 # List of NTP servers to use.
 {% for host in groups['mgmt'] %}
-server {{ hostvars[host]['ansibl_host'] }} iburst
+server {{ hostvars[host]['ansible_host'] }} iburst
 {% endfor %}
 
 # Ignore stratum in source selection.
