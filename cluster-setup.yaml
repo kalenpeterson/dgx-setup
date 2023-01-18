@@ -407,11 +407,11 @@
         apt:
           deb: "/tmp/{{ panfs_driver }}"
         become: yes
-    when: install_panfs_driver
+    when: install_panfs_driver == true
 
   - name: Run upgrade
     apt:
-      upgrade: full
+      upgrade: safe
       update_cache: yes
     become: yes
 
@@ -425,7 +425,7 @@
       msg: Reboot is required, rebooting now
       reboot_timeout: 1800
     when: reboot_required.stat.exists
-          and allow_node_reboot
+          and allow_node_reboot == true
     become: yes
 
   handlers:
