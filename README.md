@@ -27,7 +27,13 @@ git clone https://github.com/kalenpeterson/dgx-setup.git
 ## 4) Configure inventory file
 Configure all params
 
+## 4.1) Create User/Sudoers on New Node
+```
+sudo useradd -b /home -u 1001 -G sudo -m -U -s /bin/bash dgx
+sudo passwd dgx
 
+
+```
 ## 5) Run cluster-prep
 ```
 ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -v -i ./inventory -l all ./cluster-prep.yaml
