@@ -29,10 +29,10 @@ Configure all params
 
 ## 4.1) Create User/Sudoers on New Node
 ```
-sudo useradd -b /home -u 1001 -G sudo -m -U -s /bin/bash dgx
-sudo passwd dgx
-
-
+sudo bash
+useradd -b /home -u 1001 -G sudo -m -U -s /bin/bash dgx
+passwd dgx
+echo 'dgx ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/dgx
 ```
 ## 5) Run cluster-prep
 ```

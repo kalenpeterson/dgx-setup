@@ -153,6 +153,14 @@
       mode: '0644'
     become: yes
 
+  # Update All APT Packages
+  - name: Run upgrade
+    apt:
+      upgrade: yes
+      update_cache: yes
+      cache_valid_time: 3600 #One hour
+    become: yes
+
   # Configure Time and TimeZone
   - name: Configure Time
     block:
@@ -200,7 +208,21 @@
         apt:
           deb: "/tmp/{{ panfs_driver }}"
         become: yes
-    when: install_panfs_driver|bool == true
+    when: install_panfs_driver == true
+
+  # Reboot if required
+  - name: Check if Reboot is required
+    stat:
+      path: /var/run/reboot-required
+    register: reboot_required
+
+  - name: Reboot if required
+    reboot:
+      msg: Reboot is required, rebooting now
+      reboot_timeout: 1800
+    when: reboot_required.stat.exists == true
+          and allow_node_reboot == true
+    become: yes
 
   handlers:
   - name: Restart Chrony
@@ -299,7 +321,6 @@
   gather_facts: no
   vars:
     restart_docker: true
-    allow_node_reboot: true
 
   tasks:
   - name: Install Lambda Repos
@@ -347,7 +368,7 @@
         when: (lambda_deb.changed|bool == true or lambda_stack.changed|bool == true)
               and allow_node_reboot
         become: yes
-    when: install_lambda_stack|bool == true
+    when: install_lambda_stack == true
 
   - name: Install Docker and Nvidia Toolkit
     apt:
@@ -355,7 +376,7 @@
       - docker.io
       - nvidia-container-toolkit
       update_cache: yes
-      cache_valid_time: 86400 #One day
+      cache_valid_time: 0
     become: yes
     notify: Restart Docker
 
@@ -434,34 +455,4 @@
       name: docker
       enabled: true
       state: restarted
-    become: yes
-
-###
-##  Setup Docker and Proxy on Compute/GPU Node
-###
-- name: Update and Reboot Nodes (Ubuntu)
-  hosts: node
-  gather_facts: no
-  vars:
-    allow_node_reboot: true
-
-  tasks:
-  - name: Run upgrade
-    apt:
-      upgrade: yes
-      update_cache: yes
-      cache_valid_time: 86400 #One day
-    become: yes
-
-  - name: Check if Reboot is required
-    stat:
-      path: /var/run/reboot-required
-    register: reboot_required
-
-  - name: Reboot if required
-    reboot:
-      msg: Reboot is required, rebooting now
-      reboot_timeout: 1800
-    when: reboot_required.stat.exists == true
-          and allow_node_reboot == true
     become: yes
