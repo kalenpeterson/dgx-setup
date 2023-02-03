@@ -1,3 +1,7 @@
+## This Playbook is used to migrate DGX-1 Nodes from the old
+#   deprecated Nvidia APT repos and GPG Keys. This migration
+#   was done in 2022. Systems newer than that do not need to
+#   be migrated.
 - name: Prep DGX Nodes
   hosts: node
   gather_facts: no
