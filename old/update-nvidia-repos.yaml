@@ -49,6 +49,7 @@
     loop:
       - /etc/apt/sources.list.d/developer_download_nvidia_com_compute_cuda_repos_ubuntu1804_x86_64.list
       - /etc/apt/sources.list.d/dgx-bionic-r418-cuda10-1-repo.list
+      - /etc/apt/sources.list.d/dgx-bionic-r450-cuda11-0-repo.list
 
   - name: Run upgrade
     apt:
