@@ -440,7 +440,7 @@
 
   # Configure Docker to use Nvidia Runtime
   - name: Configure Nvidia Container Runtime
-    file:
+    copy:
       src: files/daemon.json
       dest: /etc/docker/daemon.json
     become: yes
