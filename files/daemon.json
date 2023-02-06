@@ -5,6 +5,5 @@
             "path": "/usr/bin/nvidia-container-runtime",
             "runtimeArgs": []
         }
-    },
-    "insecure-registries" : [ "registry.local:31500" ]
+    }
 }

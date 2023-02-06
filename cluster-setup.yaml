@@ -438,6 +438,14 @@
       - Reload Systemd
       - Restart Docker
 
+  # Configure Docker to use Nvidia Runtime
+  - name: Configure Nvidia Container Runtime
+    file:
+      src: files/daemon.json
+      dest: /etc/docker/daemon.json
+    become: yes
+    notify: Restart Docker
+
   handlers:
   - name: Update CA Certs
     command:
