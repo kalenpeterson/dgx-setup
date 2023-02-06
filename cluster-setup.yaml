@@ -196,6 +196,13 @@
           - Restart Chrony
           - Force Timesync
 
+      - name: Enable Chrony
+        service:
+          name: chrony
+          enabled: true
+          state: started
+        become: yes
+
   # Install PAN FS Driver
   - name: Install PanFS Driver
     block:
