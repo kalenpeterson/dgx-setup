@@ -401,6 +401,9 @@
 - name: Setup Docker on Compute/GPU Nodes (Ubuntu)
   hosts: node
   gather_facts: no
+  vars:
+    update_certs: True
+    deamon_reload: True
 
   tasks:
   # Review /etc/systemd/system/docker files
@@ -444,6 +447,8 @@
       - Update CA Certs
       - Reload Systemd
       - Restart Docker
+
+  - name: 
 
   # Configure Docker to use Nvidia Runtime
   - name: Configure Nvidia Container Runtime
