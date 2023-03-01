@@ -4,3 +4,4 @@
 panfs_kernel_driver_map:
   5.4.0-135-generic: panfs-5.4.0-135-generic-9.2.0.d-1744746.1.ul_2004_x86_64.deb
   4.15.0-124-generic: panfs-4.15.0-124-generic-8.1.1.c-1631199.2.ul_1804_x86_64.deb
+  5.4.0-139-generic: panfs-5.4.0-139-generic-9.3.1-1757899.1.ul_2004_x86_64.deb
