@@ -156,7 +156,6 @@
   # Update All APT Packages
   - name: Run upgrade
     apt:
-      upgrade: yes
       update_cache: yes
       cache_valid_time: 3600 #One hour
     become: yes
@@ -225,6 +224,23 @@
         apt:
           deb: "/tmp/{{ panfs_kernel_driver_map[ansible_kernel] }}"
         become: yes
+
+      - name: Probe for PanFS Module
+        shell: |
+          modprobe panfs
+        become: yes
+
+      - name: Check for PanFS Module
+        shell: |
+          lsmod |grep -ic panfs
+        register: lsmod_out
+        become: yes
+
+      - name: Is PanFS Installed
+        debug:
+          msg: "Panfs successfully loaded"
+        when: lsmod_out.stdout == '1'
+        
     when: install_panfs_driver|bool == true
 
   # Reboot if required
