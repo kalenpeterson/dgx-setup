@@ -206,16 +206,26 @@
   # Install PAN FS Driver
   - name: Install PanFS Driver
     block:
+      - name: Fail if Kernel driver is available
+        fail:
+          msg: "No PanFS Driver found for detected Kernel '{{ ansible_kernel }}'. Put the deb file in ./files and update the map in ./group_vars/all.yml"
+        when: panfs_kernel_driver_map[ansible_kernel] is not defined
+
+      - name: Check if Kernel driver is available
+        debug:
+          msg: "Detected Kernel '{{ ansible_kernel }}'. Using installer '{{ panfs_kernel_driver_map[ansible_kernel] }}'"
+        when: panfs_kernel_driver_map[ansible_kernel] is defined
+
       - name: Copy PanFS DEB
         copy:
-          src: "files/{{ panfs_driver }}"
-          dest: "/tmp/{{ panfs_driver }}"
+          src: "files/{{ panfs_kernel_driver_map[ansible_kernel] }}"
+          dest: "/tmp/{{ panfs_kernel_driver_map[ansible_kernel] }}"
       
       - name: Install PanFS Driver
         apt:
-          deb: "/tmp/{{ panfs_driver }}"
+          deb: "/tmp/{{ panfs_kernel_driver_map[ansible_kernel] }}"
         become: yes
-    when: install_panfs_driver == true
+    when: install_panfs_driver|bool == true
 
   # Reboot if required
   - name: Check if Reboot is required
