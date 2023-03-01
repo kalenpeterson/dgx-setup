@@ -458,8 +458,6 @@
       - Reload Systemd
       - Restart Docker
 
-  - name: 
-
   # Configure Docker to use Nvidia Runtime
   - name: Configure Nvidia Container Runtime
     copy:
