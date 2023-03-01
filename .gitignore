@@ -1,3 +1,4 @@
 files/hosts
 templates/hosts.j2
 inventory
+*.deb
