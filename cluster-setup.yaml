@@ -159,6 +159,10 @@
       update_cache: yes
       cache_valid_time: 3600 #One hour
     become: yes
+    retries: 3
+    delay: 10
+    register: apt_result
+    until: "apt_result is not failed"
 
   # Configure Time and TimeZone
   - name: Configure Time
@@ -183,6 +187,10 @@
         notify:
           - Restart Chrony
           - Force Timesync
+        retries: 3
+        delay: 10
+        register: apt_result
+        until: "apt_result is not failed"
 
       - name: Configure chrony
         template:
@@ -393,6 +401,10 @@
           install_recommends: false
         become: yes
         register: lambda_stack
+        retries: 3
+        delay: 10
+        register: lambda_stack
+        until: "lambda_stack is not failed"
     
       - name: Reboot Node
         reboot:
@@ -412,6 +424,10 @@
       cache_valid_time: 0
     become: yes
     notify: Restart Docker
+    retries: 3
+    delay: 10
+    register: apt_result
+    until: "apt_result is not failed"
 
   handlers:
   - name: Restart Docker
