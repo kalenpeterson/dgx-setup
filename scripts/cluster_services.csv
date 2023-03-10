@@ -1,0 +1,12 @@
+Namespace,ServiceType,ServiceName,Resart
+kube-system,Deployment,hostpath-provisioner,true
+default,Deployment,apt-cacher-ng,true
+default,Deployment,docker-proxy,true
+monitoring,StatefuleSet,rometheus-prometheus-operator-prometheus,true
+harbor,Deployment,harbor,true
+slurm-db,StatefulSet,mysql,true
+slurm-db,Deployment,slurmdbd,true
+slurm-db,Deployment,slurmctld,true
+slurm-ctl,StatefulSet,mysql,true
+slurm-ctl,Deployment,slurmdbd,true
+slurm-ctl,Deployment,slurmctld,true
