@@ -223,26 +223,26 @@
           msg: "Detected Kernel '{{ ansible_kernel }}'. Using installer '{{ panfs_kernel_driver_map[ansible_kernel] }}'"
         when: panfs_kernel_driver_map[ansible_kernel] is defined
 
-      - name: Get version of PanFS Packing Installed
-        shell: |
-          dpkg -L panfs |grep -P '^/lib/modules/\d.+-generic$' |awk -F/ '{print $4}'
-        register: dpkg_panfs_kernel
-        become: yes
+      # - name: Get version of PanFS Packing Installed
+      #   shell: |
+      #     dpkg -L panfs |grep -P '^/lib/modules/\d.+-generic$' |awk -F/ '{print $4}'
+      #   register: dpkg_panfs_kernel
+      #   become: yes
 
-      - name: Check PanFS Installed version
-        debug:
-          msg: "Found installed PanFs Driver for Kernel {{ dpkg_panfs_kernel.stdout }}"
-        when: allow_panfs_driver_uninstall|bool is True and
-              dpkg_panfs_kernel.stdout is not ''
+      # - name: Check PanFS Installed version
+      #   debug:
+      #     msg: "Found installed PanFs Driver for Kernel {{ dpkg_panfs_kernel.stdout }}"
+      #   when: allow_panfs_driver_uninstall|bool is True and
+      #         dpkg_panfs_kernel.stdout is not ''
 
-      - name: Remove PanFS Driver
-        apt:
-          package: panfs
-          state: absent
-        become: yes
-        when: allow_panfs_driver_uninstall|bool is True and
-              dpkg_panfs_kernel.stdout is not ansible_kernel and
-              dpkg_panfs_kernel.stdout is not ''
+      # - name: Remove PanFS Driver
+      #   apt:
+      #     package: panfs
+      #     state: absent
+      #   become: yes
+      #   when: allow_panfs_driver_uninstall|bool is True and
+      #         dpkg_panfs_kernel.stdout is not ansible_kernel and
+      #         dpkg_panfs_kernel.stdout is not ''
 
       - name: Copy PanFS DEB
         copy:
