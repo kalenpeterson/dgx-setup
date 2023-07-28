@@ -512,12 +512,21 @@
       - Restart Docker
 
   # Configure Docker to use Nvidia Runtime
-  - name: Configure Nvidia Container Runtime
+  - name: Configure Nvidia Container Runtime (DGX)
     copy:
       src: files/daemon.json
       dest: /etc/docker/daemon.json
     become: yes
     notify: Restart Docker
+    when: "'lambda' not in group_names"
+
+  - name: Configure Nvidia Container Runtime (Lambda)
+    copy:
+      src: files/lambda.daemon.json
+      dest: /etc/docker/daemon.json
+    become: yes
+    notify: Restart Docker
+    when: "'lambda' in group_names"
 
   handlers:
   - name: Update CA Certs
