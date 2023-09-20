@@ -1,14 +1,20 @@
 # Add a Cluster node
 
-Adding a Kube Node
+Adding a Kube Node to an existing cluster
 
 
 ## 1. Run cluster setup
+**From the dgx-setup repo**
+
+Edit the inventory file in the dgx-setup repo to add the new node(s)
+  - New nodes should be defined with IP addresses under the [all] section and then added to the [node] section
 ```
 ansible-playbook -i ./inventory -l lambda ./cluster-setup.yaml
 ```
 
 ## 2. Edit deepops Inventory
+**From the deepops repo**
+  - deepops/config/inventory
 Add new nodes to All with ip and ansible_host. Add names to kube-nodes
 
 Add to all:vars
@@ -18,6 +24,7 @@ download_run_once=True
 ```
 
 ## 3. Run Deepops expand
+**From the deepops repo**
 ```
 ansible-playbook -i ./config/inventory -l k8s-cluster ./submodules/kubespray/scale.yml
 ```
@@ -46,7 +53,6 @@ https://github.com/kubernetes-sigs/kubespray/issues/5958kub
 
 ## 4. Label Nodes
 Label each node as a compute node.
-
 ```
 kubectl label node NODE_NAME node-role.kubernetes.io/node=
 ```
@@ -54,6 +60,11 @@ kubectl label node NODE_NAME node-role.kubernetes.io/node=
 Apply Custom node-type labels.
 ```
 kubectl label node NODE_NAME system_type=lambda
+```
+
+Apply DCGM Exporter Label
+```
+kubectl label nodes <node-name> hardware-type=NVIDIAGPU
 ```
 
 ## 5. Validation

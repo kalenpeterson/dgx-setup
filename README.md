@@ -1,49 +1,29 @@
-# dgx-setup
-DGX Node Initial Setup
+# DGX-Lambda Node Setup
+This Document details the procedure to add prepare DGX/Lambda nodes to be added to a cluster
+
+## Document Index
+| Document                             | Description                                                 | Version Info               |
+| ------------------------------------ | ----------------------------------------------------------- | -------------------------- |
+| [New Cluster](docs/new-cluster.md)   | Guide to deploying a new Kube Cluster                       | Kalen Peterson, Dec 2020   |
+| [Add Node](docs/add-node.md)         | Guide to adding DGX or Lambda nodes to the Cluster          | Kalen Peterson, June 2023  |
+| [Repair Cluster](recovery/README.md) | Guilde to repair/re-add a broken Master node in the cluster | Kalen Peterson, April 2022 |
 
 
-## 1) Clone Deeopops
-https://github.com/NVIDIA/deepops/blob/master/docs/dgx-pod.md
-```
-git clone --recurse-submodules --branch 20.10 https://github.com/NVIDIA/deepops.git
-cd deepops
-git submodule update
-```
+## Tool Index
+| Tool                                     | Description                                                     | Version Info               |
+| ---------------------------------------- | --------------------------------------------------------------- | -------------------------- |
+| [cluster-setup.yaml](cluster-setup.yaml) | Ansible Playbook to configure base cluseter nodes (master/node) | Kalen Peterson, June 2023  |
+| configure-firewall.yaml                  | Ansible playbook to confiture firewall on master nodes          | Kalen Peterson, April 2021 |
+| renew-cluster-certs.yaml                 | Ansible playbook to renew Kubernetes cluster certificates       | Kalen Peterson, April 2021 |
+| setup-kubectl.yaml                       | Ansible playbook to configure kubetl and distribure kubeconfig  | Kalen Peterson, April 2021 |
+| renew-cluster-certs.yaml                 | Ansible playbook to renew Kubernetes cluster certificates       | Kalen Peterson, April 2021 |
+| restart_cluster_services.sh              | Shell script to restart all Kube/Slurm services                 | Kalen Peterson, June 2023  |
+| podman_reset.sh                          | Shell script to Setup/Reset a User's Podman configuration       | Kalen Peterson, April 2022 |
+| cluster-repair.yaml                      | Ansible playbook to repair/re-add broken master nodes           | Kalen Peterson, April 2022 |
 
 
-## 2) Run Deepops Setup
-```
-cd deepops
-./scripts/setup.sh
-```
+## References
+| URL                               | Description                                                |
+| --------------------------------- | ---------------------------------------------------------- |
+| https://github.com/NVIDIA/deepops | Nvidia deepops project, source for developing this cluster |
 
-
-## 3) Clone DGX-Setup
-```
-git clone https://github.com/kalenpeterson/dgx-setup.git
-```
-
-
-## 4) Configure inventory file
-Configure all params
-
-## 4.1) Create User/Sudoers on New Node
-```
-sudo bash
-useradd -b /home -u 1001 -G sudo -m -U -s /bin/bash dgx
-passwd dgx
-echo 'dgx ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/dgx
-```
-## 5) Run cluster-prep
-```
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -v -i ./inventory -l all ./cluster-prep.yaml
-```
-
-## 6) Run Upgrades on dgx nodes
-https://docs.nvidia.com/dgx/pdf/DGX-OS-server-4.6-relnotes-update-guide.pdf
-Do we want to upgrade the driver? Look at 450 upgrade. We will need to add the repo.
-```
-sudo apt update
-sudo apt full-upgrade -s
-sudo apt full-upgrade
-```
